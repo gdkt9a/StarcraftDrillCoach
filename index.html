@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StarCraft Drill Coach — 星际争霸辅助训练工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0a0c0f;
+      --bg2:       #0f1318;
+      --bg3:       #141a22;
+      --border:    rgba(80,160,100,0.18);
+      --green:     #4cdb7a;
+      --green-dim: #2a7a45;
+      --green-glow:#4cdb7a44;
+      --teal:      #1abc9c;
+      --gold:      #f0c040;
+      --text:      #d8e8d8;
+      --text-dim:  #7a9a7a;
+      --accent:    #50c080;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── 背景噪点纹理 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(76,219,122,0.07) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── 扫描线 ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    section, nav, footer { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      background: rgba(10,12,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--green);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .nav-logo span { color: var(--text-dim); font-weight: 500; }
+
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--green); }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 24px 60px;
+      position: relative;
+    }
+
+    /* 六边形网格背景装饰 */
+    .hex-grid {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      opacity: 0.04;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 0 L56 16 L56 48 L28 64 L0 48 L0 16 Z' fill='none' stroke='%234cdb7a' stroke-width='0.8'/%3E%3Cpath d='M28 36 L56 52 L56 84 L28 100 L0 84 L0 52 Z' fill='none' stroke='%234cdb7a' stroke-width='0.8'/%3E%3C/svg%3E");
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border: 1px solid var(--green-dim);
+      border-radius: 2px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: clamp(42px, 8vw, 88px);
+      line-height: 1.0;
+      letter-spacing: -1px;
+      color: #fff;
+      margin-bottom: 8px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--green);
+      text-shadow: 0 0 40px var(--green-glow);
+    }
+
+    .hero-sub {
+      font-size: clamp(13px, 2vw, 16px);
+      color: var(--text-dim);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-desc {
+      max-width: 520px;
+      font-size: 15px;
+      color: var(--text);
+      opacity: 0.75;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 32px;
+      background: var(--green);
+      color: #0a0c0f;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+      background: #6ef09a;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--green-glow);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 28px;
+      background: transparent;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-decoration: none;
+      border: 1px solid rgba(200,220,200,0.2);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--green-dim);
+      color: var(--green);
+    }
+
+    .hero-version {
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      animation: fadeUp 0.6s 0.5s ease both;
+    }
+
+    /* ── 数据栏 ── */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+
+    .stat-item {
+      flex: 1;
+      max-width: 200px;
+      padding: 28px 20px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+
+    .stat-num {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── 功能区 ── */
+    #features {
+      padding: 100px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: clamp(28px, 4vw, 42px);
+      color: #fff;
+      margin-bottom: 56px;
+      line-height: 1.1;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2px;
+      background: var(--border);
+    }
+
+    .feature-card {
+      background: var(--bg2);
+      padding: 36px 32px;
+      transition: background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 0;
+      background: var(--green);
+      transition: height 0.3s ease;
+    }
+
+    .feature-card:hover { background: var(--bg3); }
+    .feature-card:hover::before { height: 100%; }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: #fff;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    /* ── 工作流程 ── */
+    #how {
+      padding: 100px 24px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .how-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 56px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      left: 23px;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--green-dim), transparent);
+    }
+
+    .step {
+      display: flex;
+      gap: 28px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .step.visible { opacity: 1; transform: none; }
+    .step:last-child { border-bottom: none; }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 46px; height: 46px;
+      border: 1px solid var(--green-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--green);
+      background: var(--bg);
+      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    }
+
+    .step-content {}
+    .step-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+
+    /* ── 种族区域 ── */
+    #races {
+      padding: 100px 24px;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .races-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+
+    .race-card {
+      padding: 36px 20px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      transition: border-color 0.25s, transform 0.2s;
+      cursor: default;
+    }
+
+    .race-card:hover {
+      border-color: var(--green-dim);
+      transform: translateY(-4px);
+    }
+
+    .race-icon { font-size: 40px; margin-bottom: 14px; display: block; }
+
+    .race-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fff;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    .race-desc { font-size: 12px; color: var(--text-dim); }
+
+    /* ── 下载区 ── */
+    #download {
+      padding: 100px 24px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .download-inner { max-width: 700px; margin: 0 auto; }
+
+    .download-box {
+      margin-top: 48px;
+      padding: 40px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .download-box::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+    }
+
+    .download-ver {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .download-name {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+    }
+
+    .download-req {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 2;
+    }
+
+    .download-req span { color: var(--text); }
+
+    /* ── 捐赠区 ── */
+    #donate {
+      padding: 100px 24px;
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .donate-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .donate-cards {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .donate-card {
+      flex: 1;
+      min-width: 200px;
+      max-width: 240px;
+      padding: 28px 20px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      transition: border-color 0.2s;
+    }
+
+    .donate-card:hover { border-color: var(--green-dim); }
+
+    .donate-card-icon { font-size: 32px; margin-bottom: 12px; }
+    .donate-card-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .donate-card-desc { font-size: 12px; color: var(--text-dim); }
+
+    /* 感谢语 */
+    .donate-note {
+      margin-top: 36px;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 40px 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--green-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .footer-links a {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: 1px;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--green); }
+
+    .footer-copy {
+      font-size: 11px;
+      color: #3a4a3a;
+      letter-spacing: 1px;
+    }
+
+    /* ── 动画 ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── 响应式 ── */
+    @media (max-width: 600px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .stats-bar { flex-wrap: wrap; }
+      .stat-item { min-width: 50%; border-bottom: 1px solid var(--border); }
+      .races-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 42px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">SCDC <span>· StarCraft Drill Coach</span></div>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#how">使用方法</a>
+    <a href="#download">下载</a>
+    <a href="#donate">支持开发</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hex-grid"></div>
+  <div class="hero-badge">v0.1.0 · 现已发布</div>
+  <h1>StarCraft<br><em>Drill Coach</em></h1>
+  <div class="hero-sub">星际争霸重制版 · 辅助训练工具</div>
+  <p class="hero-desc">
+    实时识别游戏资源，按 Build Order 自动语音提示，让你把注意力放在操作上，而不是记步骤。
+  </p>
+  <div class="hero-btns">
+    <a href="#download" class="btn-primary">
+      ⬇ 立即下载
+    </a>
+    <a href="#features" class="btn-secondary">
+      了解功能 →
+    </a>
+  </div>
+  <div class="hero-version">Windows · 免费 · 开源</div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num">3</div>
+    <div class="stat-label">支持种族</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">5</div>
+    <div class="stat-label">触发条件类型</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">2</div>
+    <div class="stat-label">训练模式</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">8+</div>
+    <div class="stat-label">内置音色</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">核心功能</div>
+  <div class="section-title">你需要的，都在这里</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <span class="feature-icon">👁</span>
+      <div class="feature-title">实时资源识别</div>
+      <div class="feature-desc">自动识别游戏窗口中的矿、气、人口、游戏时间，无需手动输入，识别率高达 100%。</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📢</span>
+      <div class="feature-title">语音步骤提示</div>
+      <div class="feature-desc">满足触发条件时自动播报语音，8 种音色可选，语速可调，让你眼睛专注游戏。</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">✏️</span>
+      <div class="feature-title">可视化 BO 编辑器</div>
+      <div class="feature-desc">图形化界面创建和编辑 Build Order，支持时间、矿、气、人口多维度触发条件，一键生成音频。</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🧪</span>
+      <div class="feature-title">REP 模拟验证</div>
+      <div class="feature-desc">导入 .rep 回放文件，离线验证 BO 触发逻辑，不用开游戏就能测试你的战术。</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">👁‍🗨</span>
+      <div class="feature-title">回放实时回看</div>
+      <div class="feature-desc">在游戏内观看回放时同步 OCR 识别，对照 BO 进行实战复盘，找出资源浪费节点。</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔔</span>
+      <div class="feature-title">通用提醒规则</div>
+      <div class="feature-desc">自定义资源告警，比如「矿超过 400 提醒花矿」、「人口满了提醒补兵」，完全可配置。</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="how-inner">
+    <div class="section-label">使用流程</div>
+    <div class="section-title">三步开始训练</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">选择或创建 Build Order</div>
+          <div class="step-desc">从内置 BO 库中选择，或在可视化编辑器中自己创建。设置每个步骤的触发条件和语音提示，一键生成音频。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">启动游戏，开始训练</div>
+          <div class="step-desc">打开《星际争霸：重制版》，使用窗口化高清模式。在 SCDC 中点击「开始训练」，软件自动定位游戏窗口并开始识别。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">专注游戏，听语音提示</div>
+          <div class="step-desc">满足 BO 步骤条件时，软件自动播报语音。你只需要专注操作，重复训练直到 BO 内化为肌肉记忆。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RACES -->
+<section id="races">
+  <div class="section-label">支持种族</div>
+  <div class="section-title">三族全覆盖</div>
+  <div class="races-grid">
+    <div class="race-card">
+      <span class="race-icon">🐛</span>
+      <div class="race-name">ZERG</div>
+      <div class="race-name" style="font-size:14px;color:var(--text-dim);font-family:'Noto Sans SC'">虫族</div>
+      <div class="race-desc">支持 Drone 造建筑人口下降的变化沿触发，虫族 BO 细节完整还原</div>
+    </div>
+    <div class="race-card">
+      <span class="race-icon">🤖</span>
+      <div class="race-name">TERRAN</div>
+      <div class="race-name" style="font-size:14px;color:var(--text-dim);font-family:'Noto Sans SC'">人族</div>
+      <div class="race-desc">精准的时间线控制，配合人口和资源触发，完美适配人族节奏型打法</div>
+    </div>
+    <div class="race-card">
+      <span class="race-icon">⚡</span>
+      <div class="race-name">PROTOSS</div>
+      <div class="race-name" style="font-size:14px;color:var(--text-dim);font-family:'Noto Sans SC'">神族</div>
+      <div class="race-desc">人口上限触发支持神族 Pylon 节奏，助你精准掌握每一个 Gate 时机</div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="download-inner">
+    <div class="section-label">立即下载</div>
+    <div class="section-title">免费，开源，持续更新</div>
+    <div class="download-box">
+      <div class="download-ver">v0.1.0 · 最新版本</div>
+      <div class="download-name">StarCraft_Drill_Coach_v0.1.0_Setup.exe</div>
+      <a href="#" class="btn-primary" style="display:inline-flex">
+        ⬇ 下载 Windows 安装包
+      </a>
+      <div class="download-req">
+        系统要求：<span>Windows 10 / 11</span> &nbsp;·&nbsp;
+        游戏版本：<span>星际争霸：重制版</span> &nbsp;·&nbsp;
+        窗口模式：<span>窗口化高清模式</span>
+      </div>
+    </div>
+    <p style="margin-top:24px;font-size:12px;color:var(--text-dim)">
+      也可在 <a href="https://gdkt9a.github.io/StarcraftDrillCoach" style="color:var(--green);text-decoration:none">GitHub Pages</a> 查看此页面 · 欢迎提交 Build Order
+    </p>
+  </div>
+</section>
+
+<!-- DONATE -->
+<section id="donate">
+  <div class="section-label">支持开发</div>
+  <div class="section-title">如果 SCDC 帮到了你</div>
+  <p class="donate-desc">
+    SCDC 永久免费，没有广告，没有功能锁。如果这个工具让你的训练更高效，欢迎请我喝杯咖啡 ☕
+  </p>
+  <div class="donate-cards">
+    <div class="donate-card">
+      <div class="donate-card-icon">💚</div>
+      <div class="donate-card-name">微信支付</div>
+      <div class="donate-card-desc">扫码捐赠，金额随意</div>
+    </div>
+    <div class="donate-card">
+      <div class="donate-card-icon">💙</div>
+      <div class="donate-card-name">支付宝</div>
+      <div class="donate-card-desc">扫码捐赠，金额随意</div>
+    </div>
+  </div>
+  <p class="donate-note">所有捐赠用于软件持续开发与服务器维护 · 感谢每一位支持者</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">StarCraft Drill Coach</div>
+  <div class="footer-links">
+    <a href="#features">功能</a>
+    <a href="#download">下载</a>
+    <a href="https://gdkt9a.github.io/StarcraftDrillCoach">GitHub</a>
+    <a href="#donate">捐赠</a>
+  </div>
+  <div class="footer-copy">© 2025 StarCraft Drill Coach · 与暴雪娱乐无关联 · 仅供学习训练使用</div>
+</footer>
+
+<script>
+  // 步骤出现动画
+  const steps = document.querySelectorAll('.step');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 120);
+      }
+    });
+  }, { threshold: 0.2 });
+  steps.forEach(s => observer.observe(s));
+
+  // 数字滚动动画
+  function animateNum(el, target, suffix = '') {
+    let current = 0;
+    const step = target / 30;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = Math.floor(current) + suffix;
+      if (current >= target) clearInterval(timer);
+    }, 40);
+  }
+
+  const statsObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      document.querySelectorAll('.stat-num').forEach(el => {
+        const raw = el.textContent.trim();
+        const suffix = raw.includes('+') ? '+' : '';
+        const num = parseInt(raw);
+        animateNum(el, num, suffix);
+      });
+      statsObserver.disconnect();
+    }
+  }, { threshold: 0.5 });
+  statsObserver.observe(document.querySelector('.stats-bar'));
+</script>
+</body>
+</html>
