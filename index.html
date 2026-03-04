@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<script>
+(function(){
+  const correct = 'SCDC';
+  const key = 'scdc_auth';
+  if (sessionStorage.getItem(key) !== correct) {
+    const pwd = prompt('请输入访问密码：');
+    if (pwd !== correct) {
+      document.write('<div style="background:#0a0c0f;color:#4cdb7a;font-family:monospace;height:100vh;display:flex;align-items:center;justify-content:center;font-size:16px;letter-spacing:2px">密码错误，访问被拒绝</div>');
+      throw new Error('unauthorized');
+    }
+    sessionStorage.setItem(key, correct);
+  }
+})();
+</script>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
