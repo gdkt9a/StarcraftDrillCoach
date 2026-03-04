@@ -441,46 +441,112 @@
     }
     .step-desc { font-size: 13px; color: var(--text-dim); }
 
-    /* ── 种族区域 ── */
-    #races {
+    /* ── 截图展示区 ── */
+    #showcase {
       padding: 100px 24px;
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
-      text-align: center;
     }
 
-    .races-grid {
+    .showcase-inner {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      grid-template-columns: 1fr 360px;
+      gap: 60px;
+      align-items: center;
       margin-top: 56px;
     }
 
-    .race-card {
-      padding: 36px 20px;
-      border: 1px solid var(--border);
+    .showcase-img-wrap {
+      position: relative;
+    }
+
+    .showcase-img-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border: 1px solid var(--green-dim);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .showcase-img-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 20px; right: -20px;
+      height: 100%;
+      background: var(--green-glow);
+      filter: blur(40px);
+      z-index: -1;
+    }
+
+    .showcase-img {
+      width: 100%;
+      display: block;
+      opacity: 0.93;
+    }
+
+    .showcase-points {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .showcase-point {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .showcase-point.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .showcase-point-icon {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border: 1px solid var(--green-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
       background: var(--bg2);
-      transition: border-color 0.25s, transform 0.2s;
-      cursor: default;
+      clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
     }
 
-    .race-card:hover {
-      border-color: var(--green-dim);
-      transform: translateY(-4px);
-    }
-
-    .race-icon { font-size: 40px; margin-bottom: 14px; display: block; }
-
-    .race-name {
+    .showcase-point-title {
       font-family: 'Rajdhani', sans-serif;
       font-weight: 700;
-      font-size: 20px;
+      font-size: 16px;
       color: #fff;
-      letter-spacing: 2px;
-      margin-bottom: 8px;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
     }
 
-    .race-desc { font-size: 15px; color: var(--text-dim); }
+    .showcase-point-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .showcase-note {
+      margin-top: 36px;
+      padding: 16px 20px;
+      border-left: 3px solid var(--green);
+      background: rgba(76,219,122,0.05);
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    .showcase-note strong { color: var(--green); }
+
+    @media (max-width: 800px) {
+      .showcase-inner { grid-template-columns: 1fr; }
+    }
 
     /* ── 下载区 ── */
     #download {
@@ -766,28 +832,41 @@
   </div>
 </section>
 
-<!-- RACES -->
-<section id="races">
-  <div class="section-label">支持种族</div>
-  <div class="section-title">三族全覆盖</div>
-  <div class="races-grid">
-    <div class="race-card">
-      <span class="race-icon">🐛</span>
-      <div class="race-name">ZERG</div>
-      <div class="race-name" style="font-size:14px;color:var(--text-dim);font-family:'Noto Sans SC'">虫族</div>
-      <div class="race-desc">支持 Drone 造建筑人口下降的变化沿触发，虫族 BO 细节完整还原</div>
+<!-- SHOWCASE -->
+<section id="showcase">
+  <div class="section-label">核心界面</div>
+  <div class="section-title">设置一次，训练时只听声音</div>
+  <div class="showcase-inner">
+    <div class="showcase-img-wrap">
+      <img class="showcase-img"
+           src="https://gdkt9a.github.io/StarcraftDrillCoach/images/screenshot-editor.png"
+           alt="SCDC BO 编辑器截图" />
     </div>
-    <div class="race-card">
-      <span class="race-icon">🤖</span>
-      <div class="race-name">TERRAN</div>
-      <div class="race-name" style="font-size:14px;color:var(--text-dim);font-family:'Noto Sans SC'">人族</div>
-      <div class="race-desc">精准的时间线控制，配合人口和资源触发，完美适配人族节奏型打法</div>
-    </div>
-    <div class="race-card">
-      <span class="race-icon">⚡</span>
-      <div class="race-name">PROTOSS</div>
-      <div class="race-name" style="font-size:14px;color:var(--text-dim);font-family:'Noto Sans SC'">神族</div>
-      <div class="race-desc">人口上限触发支持神族 Pylon 节奏，助你精准掌握每一个 Gate 时机</div>
+    <div class="showcase-points">
+      <div class="showcase-point">
+        <div class="showcase-point-icon">⏱</div>
+        <div>
+          <div class="showcase-point-title">多维度触发条件</div>
+          <div class="showcase-point-desc">每个步骤可设置时间、截止时间、矿、气、人口、人口上限，条件全部满足才触发，精确还原每一个战术节点。</div>
+        </div>
+      </div>
+      <div class="showcase-point">
+        <div class="showcase-point-icon">🔊</div>
+        <div>
+          <div class="showcase-point-title">自定义语音提示</div>
+          <div class="showcase-point-desc">每步填写提示内容，一键生成语音文件。训练时软件自动播报，眼睛和手只专注游戏操作。</div>
+        </div>
+      </div>
+      <div class="showcase-point">
+        <div class="showcase-point-icon">📋</div>
+        <div>
+          <div class="showcase-point-title">社区 BO 共享</div>
+          <div class="showcase-point-desc">玩家可自由创建和分享 BO 文件，导入即用。虫族、人族、神族全部支持，覆盖各种流派打法。</div>
+        </div>
+      </div>
+      <div class="showcase-note">
+        <strong>训练逻辑很简单：</strong>在编辑器里把 BO 设置好，开始训练后软件全程在后台跑，你只需要戴上耳机打游戏，到时间它自然会告诉你下一步做什么。
+      </div>
     </div>
   </div>
 </section>
@@ -860,6 +939,17 @@
     });
   }, { threshold: 0.2 });
   steps.forEach(s => observer.observe(s));
+
+  // showcase-point 出现动画
+  const points = document.querySelectorAll('.showcase-point');
+  const pointObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 150);
+      }
+    });
+  }, { threshold: 0.2 });
+  points.forEach(p => pointObserver.observe(p));
 
   // 数字滚动动画
   function animateNum(el, target, suffix = '') {
