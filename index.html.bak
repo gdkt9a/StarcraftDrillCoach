@@ -849,8 +849,8 @@
     <div class="section-title">免费，持续更新</div>
     <div class="download-box">
       <div class="download-ver">v1.0.0 · 最新版本</div>
-      <div class="download-name">StarCraft.Drill.CoachV1.0.0.zip</div>
-      <a href="https://github.com/gdkt9a/StarcraftDrillCoach/releases/download/V1.0.0/StarCraft.Drill.CoachV1.0.0.zip" class="btn-primary" style="display:inline-flex">⬇ 下载 Windows 安装包</a>
+      <div class="download-name">StarCraft_Drill_Coach_v1.0.0_Setup.exe</div>
+      <a href="#" class="btn-primary" style="display:inline-flex">⬇ 下载 Windows 安装包</a>
       <div class="download-req">
         系统要求：<span>Windows 10 / 11</span> &nbsp;·&nbsp;
         游戏版本：<span>星际争霸：重制版</span> &nbsp;·&nbsp;
